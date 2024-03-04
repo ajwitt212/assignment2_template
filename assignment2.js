@@ -1,22 +1,23 @@
-import {tiny, defs} from './examples/common.js';
+import { tiny, defs } from './examples/common.js';
 
 // Pull these names into this module's scope for convenience:
 const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } = tiny;
 
 // TODO: you should implement the required classes here or in another file.
+import { Articulated_Human } from "./human.js";
+
+// var memoryManager = new EmscriptenMemoryManager();
 
 export
-const Assignment2_base = defs.Assignment2_base =
-    class Assignment2_base extends Component
-    {                                          
+  const Assignment2_base = defs.Assignment2_base =
+    class Assignment2_base extends Component {
       // **My_Demo_Base** is a Scene that can be added to any display canvas.
       // This particular scene is broken up into two pieces for easier understanding.
       // The piece here is the base class, which sets up the machinery to draw a simple
       // scene demonstrating a few concepts.  A subclass of it, Assignment2,
       // exposes only the display() method, which actually places and draws the shapes,
       // isolating that code so it can be experimented with on its own.
-      init()
-      {
+      init() {
         console.log("init")
 
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -26,9 +27,11 @@ const Assignment2_base = defs.Assignment2_base =
         // would be redundant to tell it again.  You should just re-use the
         // one called "box" more than once in display() to draw multiple cubes.
         // Don't define more than one blueprint for the same thing here.
-        this.shapes = { 'box'  : new defs.Cube(),
-          'ball' : new defs.Subdivision_Sphere( 4 ),
-          'axis' : new defs.Axis_Arrows() };
+        this.shapes = {
+          'box': new defs.Cube(),
+          'ball': new defs.Subdivision_Sphere(4),
+          'axis': new defs.Axis_Arrows()
+        };
 
         // *** Materials: ***  A "material" used on individual shapes specifies all fields
         // that a Shader queries to light/color it properly.  Here we use a Phong shader.
@@ -38,26 +41,26 @@ const Assignment2_base = defs.Assignment2_base =
         const phong = new defs.Phong_Shader();
         const tex_phong = new defs.Textured_Phong();
         this.materials = {};
-        this.materials.plastic = { shader: phong, ambient: .2, diffusivity: 1, specularity: .5, color: color( .9,.5,.9,1 ) }
-        this.materials.metal   = { shader: phong, ambient: .2, diffusivity: 1, specularity:  1, color: color( .9,.5,.9,1 ) }
-        this.materials.rgb = { shader: tex_phong, ambient: .5, texture: new Texture( "assets/rgb.jpg" ) }
+        this.materials.plastic = { shader: phong, ambient: .5, diffusivity: .5, specularity: .5, color: color(.9, .5, .9, 1) }
+        this.materials.metal = { shader: phong, ambient: .2, diffusivity: 1, specularity: 1, color: color(.9, .5, .9, 1) }
+        this.materials.rgb = { shader: tex_phong, ambient: .5, texture: new Texture("assets/rgb.jpg") }
 
         this.ball_location = vec3(1, 1, 1);
         this.ball_radius = 0.25;
 
         // TODO: you should create a Spline class instance
+        this.human = new Articulated_Human();
       }
 
-      render_animation( caller )
-      {                                                // display():  Called once per frame of animation.  We'll isolate out
+      render_animation(caller) {                                                // display():  Called once per frame of animation.  We'll isolate out
         // the code that actually draws things into Assignment2, a
         // subclass of this Scene.  Here, the base class's display only does
         // some initial setup.
 
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
-        if( !caller.controls )
-        { this.animated_children.push( caller.controls = new defs.Movement_Controls( { uniforms: this.uniforms } ) );
-          caller.controls.add_mouse_controls( caller.canvas );
+        if (!caller.controls) {
+          this.animated_children.push(caller.controls = new defs.Movement_Controls({ uniforms: this.uniforms }));
+          caller.controls.add_mouse_controls(caller.canvas);
 
           // Define the global camera and projection matrices, which are stored in shared_uniforms.  The camera
           // matrix follows the usual format for transforms, but with opposite values (cameras exist as
@@ -68,18 +71,18 @@ const Assignment2_base = defs.Assignment2_base =
 
           // !!! Camera changed here
           // TODO: you can change the camera as needed.
-          Shader.assign_camera( Mat4.look_at (vec3 (5, 8, 15), vec3 (0, 5, 0), vec3 (0, 1, 0)), this.uniforms );
+          Shader.assign_camera(Mat4.look_at(vec3(5, 8, 15), vec3(0, 5, 0), vec3(0, 1, 0)), this.uniforms);
         }
-        this.uniforms.projection_transform = Mat4.perspective( Math.PI/4, caller.width/caller.height, 1, 100 );
+        this.uniforms.projection_transform = Mat4.perspective(Math.PI / 4, caller.width / caller.height, 1, 100);
 
         // *** Lights: *** Values of vector or point lights.  They'll be consulted by
         // the shader when coloring shapes.  See Light's class definition for inputs.
-        const t = this.t = this.uniforms.animation_time/1000;
+        const t = this.t = this.uniforms.animation_time / 1000;
 
         // const light_position = Mat4.rotation( angle,   1,0,0 ).times( vec4( 0,-1,1,0 ) ); !!!
         // !!! Light changed here
         const light_position = vec4(20, 20, 20, 1.0);
-        this.uniforms.lights = [ defs.Phong_Shader.light_source( light_position, color( 1,1,1,1 ), 1000000 ) ];
+        this.uniforms.lights = [defs.Phong_Shader.light_source(light_position, color(1, 1, 1, 1), 1000000)];
 
         // draw axis arrows.
         this.shapes.axis.draw(caller, this.uniforms, Mat4.identity(), this.materials.rgb);
@@ -87,8 +90,7 @@ const Assignment2_base = defs.Assignment2_base =
     }
 
 
-export class Assignment2 extends Assignment2_base
-{                                                    
+export class Assignment2 extends Assignment2_base {
   // **Assignment2** is a Scene object that can be added to any display canvas.
   // This particular scene is broken up into two pieces for easier understanding.
   // See the other piece, My_Demo_Base, if you need to see the setup code.
@@ -96,8 +98,7 @@ export class Assignment2 extends Assignment2_base
   // the shapes.  We isolate that code so it can be experimented with on its own.
   // This gives you a very small code sandbox for editing a simple scene, and for
   // experimenting with matrix transformations.
-  render_animation( caller )
-  {                                                // display():  Called once per frame of animation.  For each shape that you want to
+  render_animation(caller) {                                                // display():  Called once per frame of animation.  For each shape that you want to
     // appear onscreen, place a .draw() call for it inside.  Each time, pass in a
     // different matrix value to control where the shape appears.
 
@@ -112,7 +113,7 @@ export class Assignment2 extends Assignment2_base
     // caller:  Wraps the WebGL rendering context shown onscreen.  Pass to draw().
 
     // Call the setup code that we left inside the base class:
-    super.render_animation( caller );
+    super.render_animation(caller);
 
     /**********************************
      Start coding down here!!!!
@@ -122,32 +123,45 @@ export class Assignment2 extends Assignment2_base
     // translation(), scale(), and rotation() to generate matrices, and the
     // function times(), which generates products of matrices.
 
-    const blue = color( 0,0,1,1 ), yellow = color( 1,0.7,0,1 ), 
-          wall_color = color( 0.7, 1.0, 0.8, 1 ), 
-          blackboard_color = color( 0.2, 0.2, 0.2, 1 );
+    const blue = color(0, 0, 1, 1), yellow = color(1, 0.7, 0, 1),
+      wall_color = color(0.7, 1.0, 0.8, 1),
+      blackboard_color = color(0.2, 0.2, 0.2, 1);
 
-    const t = this.t = this.uniforms.animation_time/1000;
+    const t = this.t = this.uniforms.animation_time / 1000;
 
     // !!! Draw ground
     let floor_transform = Mat4.translation(0, 0, 0).times(Mat4.scale(10, 0.01, 10));
-    this.shapes.box.draw( caller, this.uniforms, floor_transform, { ...this.materials.plastic, color: yellow } );
+    this.shapes.box.draw(caller, this.uniforms, floor_transform, { ...this.materials.plastic, color: yellow });
 
     // TODO: you should draw scene here.
     // TODO: you can change the wall and board as needed.
     let wall_transform = Mat4.translation(0, 5, -1.2).times(Mat4.scale(6, 5, 0.1));
-    this.shapes.box.draw( caller, this.uniforms, wall_transform, { ...this.materials.plastic, color: wall_color } );
+    this.shapes.box.draw(caller, this.uniforms, wall_transform, { ...this.materials.plastic, color: wall_color });
     let board_transform = Mat4.translation(3, 6, -1).times(Mat4.scale(2.5, 2.5, 0.1));
-    this.shapes.box.draw( caller, this.uniforms, board_transform, { ...this.materials.plastic, color: blackboard_color } );
+    this.shapes.box.draw(caller, this.uniforms, board_transform, { ...this.materials.plastic, color: blackboard_color });
+
+    // draw human
+    this.human.draw(caller, this.uniforms, this.materials.plastic);
   }
 
-  render_controls()
-  {                                 
+  render_controls() {
     // render_controls(): Sets up a panel of interactive HTML elements, including
     // buttons with key bindings for affecting this scene, and live info readouts.
     this.control_panel.innerHTML += "Assignment 2: IK Engine";
-    this.new_line();    
-    // TODO: You can add your button events for debugging. (optional)
-    this.key_triggered_button( "Debug", [ "Shift", "D" ], null );
     this.new_line();
+    // TODO: You can add your button events for debugging. (optional)
+    this.key_triggered_button("Debug", ["Shift", "D"], this.debug);
+    this.key_triggered_button("Debug 2", ["Shift", "E"], this.debug2);
+    this.new_line();
+  }
+
+  debug() {
+    this.human.debug();
+    console.log("Current end effector at ", this.human.get_end_effector_position());
+  }
+
+  debug2() {
+    this.human.debug(null, 2);
+    console.log("Current end effector at ", this.human.get_end_effector_position());
   }
 }
