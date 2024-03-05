@@ -110,7 +110,7 @@ export
             }
 
             iterative_ik(target_pos, iterations = 100) {
-                for (let i = 0; i < iterations; i++) {
+                for (let i = 0; i < iterations / 2; i++) {
                     // if the end effector is close enough to the target, break
                     if (this.get_end_effector_position().minus(target_pos).norm() < 0.01) {
                         break;
@@ -123,7 +123,14 @@ export
                     // calc dtheta
                     const dtheta = this.calculate_delta_theta2(J, dx);
                     // update and apply theta
-                    this.theta = this.theta.map((v, i) => v + dtheta[i][0]);
+                    this.theta = this.theta.map((v, i) => {
+                        let newTheta = v + dtheta[i][0];
+                        // Add constraint for elbow and shoulder not to rotate where the end points z < 0.5
+                        if (i === 4 && newTheta < 0.5) {
+                            newTheta = 0.5;
+                        }
+                        return newTheta;
+                    });
                     this.apply_theta();
                 }
             }
@@ -135,6 +142,7 @@ export
                 }
                 const J_plus = math.multiply(math.inv(J_square), math.transpose(J));
                 const dtheta = math.multiply(J_plus, dx);
+                // stop z axis from being less than 0.5
                 return dtheta;
             }
 
@@ -275,6 +283,9 @@ class Arc {
             index += 1;
         }
         if (this.dof.Rz) {
+            if (this.name === "r_elbow" && theta[index] < 0.5) {
+                theta[index] = 0.5; // Adjust to a minimum safe value
+            }
             this.articulation_matrix.pre_multiply(Mat4.rotation(theta[index], 0, 0, 1));
         }
     }
