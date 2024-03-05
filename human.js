@@ -81,23 +81,61 @@ export
             calculate_Jacobian() {
                 let J = new Array(3);
                 for (let i = 0; i < 3; i++) {
-                    J[i] = new Array(this.dof);
+                    J[i] = new Array(this.dof).fill(0);
                 }
 
-                // TODO: Implement your Jacobian here
+                const delta_theta = 0.001; // Small perturbation
+                const original_theta = this.theta.slice();
+                const original_pos = this.get_end_effector_position();
 
-                return J; // 3x7 in my case.
+                for (let i = 0; i < this.dof; i++) {
+                    // Perturb theta
+                    this.theta[i] += delta_theta;
+                    this.apply_theta();
+
+                    // Observe change in end effector position
+                    const new_pos = this.get_end_effector_position();
+
+                    // Revert theta
+                    this.theta = original_theta.slice();
+                    this.apply_theta();
+
+                    // Calculate partial derivative for each dimension
+                    for (let j = 0; j < 3; j++) { // x, y, z
+                        J[j][i] = (new_pos[j] - original_pos[j]) / delta_theta;
+                    }
+                }
+
+                return J;
             }
 
-            calculate_delta_theta(J, dx) {
-                const A = math.multiply(math.transpose(J), J);
-                console.log(A);
-                const b = math.multiply(math.transpose(J), dx);
-                console.log(b);
-                const x = math.lusolve(A, b)
-                console.log(x);
+            iterative_ik(target_pos, iterations = 100) {
+                for (let i = 0; i < iterations; i++) {
+                    // if the end effector is close enough to the target, break
+                    if (this.get_end_effector_position().minus(target_pos).norm() < 0.01) {
+                        break;
+                    }
+                    // calc Jacobian
+                    const J = this.calculate_Jacobian();
+                    // calc dx
+                    const dx_vec = target_pos.minus(this.get_end_effector_position());
+                    const dx = [[dx_vec[0]], [dx_vec[1]], [dx_vec[2]]];
+                    // calc dtheta
+                    const dtheta = this.calculate_delta_theta2(J, dx);
+                    // update and apply theta
+                    this.theta = this.theta.map((v, i) => v + dtheta[i][0]);
+                    this.apply_theta();
+                }
+            }
 
-                return x;
+            calculate_delta_theta2(J, dx) {
+                const J_square = math.multiply(math.transpose(J), J);
+                for (let i = 0; i < J_square.length; i++) {
+                    J_square[i][i] += 0.0001;
+                }
+                const J_plus = math.multiply(math.inv(J_square), math.transpose(J));
+                const dtheta = math.multiply(J_plus, dx);
+                return dtheta;
             }
 
             get_end_effector_position() {

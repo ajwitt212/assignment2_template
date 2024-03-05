@@ -70,6 +70,8 @@ export
         this.sample_cnt = 1000;  // how many times we sample the curve between 0 and 1
         const curve_fn = (t) => this.spline.get_position(t);
         this.curve = new CurveShape(curve_fn, this.sample_cnt);
+
+        this.initialMoveDuration = 1.5; // Duration for the initial move to the start, in seconds
       }
 
       render_animation(caller) {                                                // display():  Called once per frame of animation.  We'll isolate out
@@ -160,9 +162,29 @@ export class Assignment2 extends Assignment2_base {
     let board_transform = Mat4.translation(3, 6, -1).times(Mat4.scale(2.5, 2.5, 0.1));
     this.shapes.box.draw(caller, this.uniforms, board_transform, { ...this.materials.plastic, color: blackboard_color });
 
-    // draw human
-    this.human.draw(caller, this.uniforms, this.materials.plastic);
+    if (this.t <= this.initialMoveDuration) {
+      // Calculate the current interpolation factor (0 at start, 1 at 1 second)
+      let interpolationFactor = this.t / this.initialMoveDuration;
+
+      // Calculate the current target position based on interpolation
+      let startPosition = this.spline.get_position(0); // Start of the spline
+      let endPosition = this.human.get_end_effector_position(); // Current end effector position
+
+      // Linearly interpolate the position
+      let targetPosition = endPosition.times(1 - interpolationFactor).plus(startPosition.times(interpolationFactor));
+
+      // Use IK to move towards the interpolated target position
+      this.human.iterative_ik(targetPosition);
+    }
+
+    else {
+      // Loop the position along the spline
+      let splinePosition = this.spline.get_position(this.t % 1);
+      this.human.iterative_ik(splinePosition);
+    }
+
     this.curve.draw(caller, this.uniforms);
+    this.human.draw(caller, this.uniforms, this.materials.plastic);
   }
 
   render_controls() {
