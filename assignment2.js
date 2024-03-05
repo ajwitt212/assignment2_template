@@ -5,7 +5,8 @@ const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } =
 
 // TODO: you should implement the required classes here or in another file.
 import { Articulated_Human } from "./human.js";
-
+import CurveShape from './CurveShape.js';
+import HermiteSpline from './HermiteSpline.js';
 // var memoryManager = new EmscriptenMemoryManager();
 
 export
@@ -50,6 +51,25 @@ export
 
         // TODO: you should create a Spline class instance
         this.human = new Articulated_Human();
+
+        this.spline = new HermiteSpline();  // spline to be drawn
+        // Top Circle
+        this.spline.add_point(3, 6, -0.8, 1, 0, 0); // Bottom
+        this.spline.add_point(3.5, 6.5, -0.8, 0, 1, 0);  // Right
+        this.spline.add_point(3, 7, -0.8, -1, 0, 0);   // Top
+        this.spline.add_point(2.5, 6.5, -0.8, 0, -1, 0); // Left
+
+        // Bottom Circle (continuing from the top circle)
+        this.spline.add_point(3, 6, -0.8, 1, 0, 0); // top
+        this.spline.add_point(3.5, 5.5, -0.8, 0, -1, 0);  // Right
+        this.spline.add_point(3, 5, -0.8, -1, 0, 0); // Bottom
+        this.spline.add_point(2.5, 5.5, -0.8, 0, 1, 0); // Left
+        this.spline.add_point(3, 6, -0.8, 1, 0, 0); // top
+
+
+        this.sample_cnt = 1000;  // how many times we sample the curve between 0 and 1
+        const curve_fn = (t) => this.spline.get_position(t);
+        this.curve = new CurveShape(curve_fn, this.sample_cnt);
       }
 
       render_animation(caller) {                                                // display():  Called once per frame of animation.  We'll isolate out
@@ -142,6 +162,7 @@ export class Assignment2 extends Assignment2_base {
 
     // draw human
     this.human.draw(caller, this.uniforms, this.materials.plastic);
+    this.curve.draw(caller, this.uniforms);
   }
 
   render_controls() {
